@@ -161,6 +161,21 @@ namespace Newtonsoft.Json.Serialization
 
             MiscellaneousUtils.Assert(valueContract != null);
 
+            /*% coerce %*/
+            JsonCoerceHandler? coerceHandler = member?.CoerceHandler;
+
+            JsonWriter? originalWriter = null;
+            System.Text.StringBuilder? stringBuilder = null;
+            StringWriter? stringWriter = null;
+            JsonTextWriter? proxyWriter = null;
+            if (coerceHandler is not null)
+            {
+                stringBuilder = new System.Text.StringBuilder();
+                stringWriter = new StringWriter(stringBuilder);
+                originalWriter = writer;
+                writer = proxyWriter = new JsonTextWriter(stringWriter);
+            }
+            /*% coerce %*/
             JsonConverter? converter =
                 member?.Converter ??
                 containerProperty?.ItemConverter ??
@@ -172,6 +187,26 @@ namespace Newtonsoft.Json.Serialization
             if (converter != null && converter.CanWrite)
             {
                 SerializeConvertable(writer, converter, value, valueContract, containerContract, containerProperty);
+                /*% coerce %*/
+                if (coerceHandler is not null && proxyWriter is not null && stringBuilder is not null)
+                {
+                    try
+                    {
+                        writer = originalWriter;
+                        var rawJson = stringBuilder.ToString();
+                        coerceHandler.CoerceAfterWrite(writer, rawJson, GetInternalSerializer(), _serializeStack);
+                    }
+                    finally
+                    {
+                        originalWriter = null;
+                        stringBuilder = null;
+                        stringWriter?.Dispose();
+                        stringWriter = null;
+                        (proxyWriter as IDisposable)?.Dispose();
+                        proxyWriter = null;
+                    }
+                }
+                /*% coerce %*/
                 return;
             }
 
@@ -215,6 +250,26 @@ namespace Newtonsoft.Json.Serialization
                     ((JToken)value).WriteTo(writer, Serializer.Converters.ToArray());
                     break;
             }
+            /*% coerce %*/
+            if (coerceHandler is not null && proxyWriter is not null && stringBuilder is not null)
+            {
+                try
+                {
+                    writer = originalWriter;
+                    var rawJson = stringBuilder.ToString();
+                    coerceHandler.CoerceAfterWrite(writer, rawJson, GetInternalSerializer(), _serializeStack);
+                }
+                finally
+                {
+                    originalWriter = null;
+                    stringBuilder = null;
+                    stringWriter?.Dispose();
+                    stringWriter = null;
+                    (proxyWriter as IDisposable)?.Dispose();
+                    proxyWriter = null;
+                }
+            }
+            /*% coerce %*/
         }
 
         private bool? ResolveIsReference(JsonContract contract, JsonProperty? property, JsonContainerContract? collectionContract, JsonProperty? containerProperty)

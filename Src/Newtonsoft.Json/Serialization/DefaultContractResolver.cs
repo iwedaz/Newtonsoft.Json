@@ -784,6 +784,10 @@ namespace Newtonsoft.Json.Serialization
             return JsonTypeReflector.GetJsonConverter(objectType);
         }
 
+        /*% coerce %*/
+        protected virtual JsonCoerceHandler? ResolveJsonCoerceHandler(Type objectType) =>
+            JsonTypeReflector.GetJsonCoerceHandler(objectType);
+        /*% coerce %*/
         private Func<object> GetDefaultCreator(Type createdType)
         {
             return JsonTypeReflector.ReflectionDelegateFactory.CreateDefaultConstructor<object>(createdType);
@@ -1616,6 +1620,9 @@ namespace Newtonsoft.Json.Serialization
             // resolve converter for property
             // the class type might have a converter but the property converter takes precedence
             property.Converter = JsonTypeReflector.GetJsonConverter(attributeProvider);
+            /*% coerce %*/
+            property.CoerceHandler = JsonTypeReflector.GetJsonCoerceHandler(attributeProvider);
+            /*% coerce %*/
 
             DefaultValueAttribute? defaultValueAttribute = JsonTypeReflector.GetAttribute<DefaultValueAttribute>(attributeProvider);
             if (defaultValueAttribute != null)

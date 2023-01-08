@@ -112,6 +112,13 @@ namespace Newtonsoft.Json.Serialization
             }
         }
 
+        /*% coerce %*/
+        /// <summary>
+        /// Gets or sets the <see cref="JsonCoerceHandler" /> for the property.
+        /// If set this converter takes precedence over the contract converter for the property type.
+        /// </summary>
+        public JsonCoerceHandler? CoerceHandler { get; set; }
+        /*% coerce %*/
         /// <summary>
         /// Gets or sets the <see cref="JsonConverter" /> for the property.
         /// If set this converter takes precedence over the contract converter for the property type.

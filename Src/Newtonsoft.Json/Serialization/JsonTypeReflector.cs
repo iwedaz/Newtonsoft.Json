@@ -195,6 +195,23 @@ namespace Newtonsoft.Json.Serialization
             return null;
         }
 
+        /*% coerce %*/
+        public static JsonCoerceHandler? GetJsonCoerceHandler(object attributeProvider)
+        {
+            var coerceAttribute = GetCachedAttribute<JsonCoerceAttribute>(attributeProvider);
+
+            if (coerceAttribute != null)
+            {
+                Func<object[]?, object> creator = CreatorCache.Get(coerceAttribute.CoerceHandlerType);
+                if (creator != null)
+                {
+                    return (JsonCoerceHandler)creator(coerceAttribute.CoerceHandlerParameters);
+                }
+            }
+
+            return null;
+        }
+        /*% coerce %*/
         /// <summary>
         /// Lookup and create an instance of the <see cref="JsonConverter"/> type described by the argument.
         /// </summary>

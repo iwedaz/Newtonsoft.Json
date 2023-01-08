@@ -52,6 +52,9 @@ namespace Newtonsoft.Json.Serialization
 {
     internal class JsonSerializerInternalReader : JsonSerializerInternalBase
     {
+        /*% coerce %*/
+        private readonly List<object> _deserializeStack = new();
+        /*% coerce %*/
         internal enum PropertyPresence
         {
             None = 0,
@@ -83,7 +86,13 @@ namespace Newtonsoft.Json.Serialization
                 {
                     JsonArrayContract arrayContract = (JsonArrayContract)contract;
 
+                    /*% coerce %*/
+                    _deserializeStack.Add(target);
+                    /*% coerce %*/
                     PopulateList((arrayContract.ShouldCreateWrapper) ? arrayContract.CreateWrapper(target) : (IList)target, reader, arrayContract, null, null);
+                    /*% coerce %*/
+                    _deserializeStack.Remove(target);
+                    /*% coerce %*/
                 }
                 else
                 {
@@ -107,11 +116,23 @@ namespace Newtonsoft.Json.Serialization
                 if (contract.ContractType == JsonContractType.Dictionary)
                 {
                     JsonDictionaryContract dictionaryContract = (JsonDictionaryContract)contract;
+                    /*% coerce %*/
+                    _deserializeStack.Add(target);
+                    /*% coerce %*/
                     PopulateDictionary((dictionaryContract.ShouldCreateWrapper) ? dictionaryContract.CreateWrapper(target) : (IDictionary)target, reader, dictionaryContract, null, id);
+                    /*% coerce %*/
+                    _deserializeStack.Remove(target);
+                    /*% coerce %*/
                 }
                 else if (contract.ContractType == JsonContractType.Object)
                 {
+                    /*% coerce %*/
+                    _deserializeStack.Add(target);
+                    /*% coerce %*/
                     PopulateObject(target, reader, (JsonObjectContract)contract, null, id);
+                    /*% coerce %*/
+                    _deserializeStack.Remove(target);
+                    /*% coerce %*/
                 }
                 else
                 {
@@ -499,7 +520,13 @@ namespace Newtonsoft.Json.Serialization
                         return targetObject;
                     }
 
-                    return PopulateObject(targetObject, reader, objectContract, member, id);
+                    //return PopulateObject(targetObject, reader, objectContract, member, id);
+                    /*% coerce %*/
+                    _deserializeStack.Add(targetObject);
+                    var result = PopulateObject(targetObject, reader, objectContract, member, id);
+                    _deserializeStack.Remove(targetObject);
+                    return result;
+                    /*% coerce %*/
                 }
                 case JsonContractType.Primitive:
                 {
@@ -557,7 +584,13 @@ namespace Newtonsoft.Json.Serialization
                             }
                         }
 
+                        /*% coerce %*/
+                        _deserializeStack.Add(dictionary);
+                        /*% coerce %*/
                         PopulateDictionary(dictionary, reader, dictionaryContract, member, id);
+                        /*% coerce %*/
+                        _deserializeStack.Remove(dictionary);
+                        /*% coerce %*/
 
                         if (createdFromNonDefaultCreator)
                         {
@@ -574,7 +607,13 @@ namespace Newtonsoft.Json.Serialization
                         }
                     else
                     {
+                        /*% coerce %*/
+                        _deserializeStack.Add(existingValue);
+                        /*% coerce %*/
                         targetDictionary = PopulateDictionary(dictionaryContract.ShouldCreateWrapper || !(existingValue is IDictionary) ? dictionaryContract.CreateWrapper(existingValue) : (IDictionary)existingValue, reader, dictionaryContract, member, id);
+                        /*% coerce %*/
+                        _deserializeStack.Remove(existingValue);
+                        /*% coerce %*/
                     }
 
                     return targetDictionary;
@@ -881,6 +920,9 @@ namespace Newtonsoft.Json.Serialization
                     }
                 }
 
+                /*% coerce %*/
+                _deserializeStack.Add(list);
+                /*% coerce %*/
                 if (!arrayContract.IsMultidimensionalArray)
                 {
                     PopulateList(list, reader, arrayContract, member, id);
@@ -889,6 +931,9 @@ namespace Newtonsoft.Json.Serialization
                 {
                     PopulateMultidimensionalArray(list, reader, arrayContract, member, id);
                 }
+                /*% coerce %*/
+                _deserializeStack.Add(list);
+                /*% coerce %*/
 
                 if (createdFromNonDefaultCreator)
                 {
@@ -923,7 +968,13 @@ namespace Newtonsoft.Json.Serialization
                     throw JsonSerializationException.Create(reader, "Cannot populate list type {0}.".FormatWith(CultureInfo.InvariantCulture, contract.CreatedType));
                 }
 
+                /*% coerce %*/
+                _deserializeStack.Add(existingValue);
+                /*% coerce %*/
                 value = PopulateList((arrayContract.ShouldCreateWrapper || !(existingValue is IList list)) ? arrayContract.CreateWrapper(existingValue) : list, reader, arrayContract, member, id);
+                /*% coerce %*/
+                _deserializeStack.Add(existingValue);
+                /*% coerce %*/
             }
 
             return value;
@@ -1038,6 +1089,19 @@ namespace Newtonsoft.Json.Serialization
 
             object? value;
 
+            /*% coerce %*/
+            JsonCoerceHandler? coerceHandler = property.CoerceHandler;
+            if (coerceHandler is not null)
+            {
+                reader = coerceHandler.CoerceBeforeRead(
+                    reader,
+                    property.PropertyType!,
+                    property.PropertyContract,
+                    propertyConverter != null,
+                    GetInternalSerializer(),
+                    _deserializeStack);
+            }
+            /*% coerce %*/
             if (propertyConverter != null && propertyConverter.CanRead)
             {
                 if (!gottenCurrentValue && property.Readable)
@@ -2417,7 +2481,10 @@ namespace Newtonsoft.Json.Serialization
 
                                 JsonConverter? propertyConverter = GetConverter(property.PropertyContract, property.Converter, contract, member);
 
-                                if (!reader.ReadForType(property.PropertyContract, propertyConverter != null))
+                                //if (!reader.ReadForType(property.PropertyContract, propertyConverter != null))
+                                /*% coerce %*/
+                                if (!reader.ReadForType(property.PropertyContract, propertyConverter != null || property.CoerceHandler != null))
+                                /*% coerce %*/
                                 {
                                     throw JsonSerializationException.Create(reader, "Unexpected end when setting {0}'s value.".FormatWith(CultureInfo.InvariantCulture, propertyName));
                                 }
