@@ -165,15 +165,13 @@ namespace Newtonsoft.Json.Serialization
             JsonCoerceHandler? coerceHandler = member?.CoerceHandler;
 
             JsonWriter? originalWriter = null;
-            System.Text.StringBuilder? stringBuilder = null;
-            StringWriter? stringWriter = null;
-            JsonTextWriter? proxyWriter = null;
-            if (coerceHandler is not null)
+            StringWriter? proxyStringWriter = null;
+            JsonTextWriter? proxyJsonWriter = null;
+            if (coerceHandler is not null && coerceHandler.UseAfterWrite)
             {
-                stringBuilder = new System.Text.StringBuilder();
-                stringWriter = new StringWriter(stringBuilder);
+                proxyStringWriter = new StringWriter();
                 originalWriter = writer;
-                writer = proxyWriter = new JsonTextWriter(stringWriter);
+                writer = proxyJsonWriter = new JsonTextWriter(proxyStringWriter);
             }
             /*% coerce %*/
             JsonConverter? converter =
@@ -188,22 +186,25 @@ namespace Newtonsoft.Json.Serialization
             {
                 SerializeConvertable(writer, converter, value, valueContract, containerContract, containerProperty);
                 /*% coerce %*/
-                if (coerceHandler is not null && proxyWriter is not null && stringBuilder is not null)
+                if (coerceHandler is not null && coerceHandler.UseAfterWrite)
                 {
+                    Debug.Assert(originalWriter is not null);
+                    Debug.Assert(proxyStringWriter is not null);
+                    Debug.Assert(proxyJsonWriter is not null);
+
                     try
                     {
                         writer = originalWriter;
-                        var rawJson = stringBuilder.ToString();
-                        coerceHandler.CoerceAfterWrite(writer, rawJson, GetInternalSerializer(), _serializeStack);
+                        var rawJson = proxyStringWriter.ToString();
+                        coerceHandler.CoerceAfterWrite(writer, rawJson, member!, GetInternalSerializer(), _serializeStack);
                     }
                     finally
                     {
                         originalWriter = null;
-                        stringBuilder = null;
-                        stringWriter?.Dispose();
-                        stringWriter = null;
-                        (proxyWriter as IDisposable)?.Dispose();
-                        proxyWriter = null;
+                        (proxyJsonWriter as IDisposable)?.Dispose();
+                        proxyJsonWriter = null;
+                        proxyStringWriter?.Dispose();
+                        proxyStringWriter = null;
                     }
                 }
                 /*% coerce %*/
@@ -251,22 +252,25 @@ namespace Newtonsoft.Json.Serialization
                     break;
             }
             /*% coerce %*/
-            if (coerceHandler is not null && proxyWriter is not null && stringBuilder is not null)
+            if (coerceHandler is not null && coerceHandler.UseAfterWrite)
             {
+                Debug.Assert(originalWriter is not null);
+                Debug.Assert(proxyStringWriter is not null);
+                Debug.Assert(proxyJsonWriter is not null);
+
                 try
                 {
                     writer = originalWriter;
-                    var rawJson = stringBuilder.ToString();
-                    coerceHandler.CoerceAfterWrite(writer, rawJson, GetInternalSerializer(), _serializeStack);
+                    var rawJson = proxyStringWriter.ToString();
+                    coerceHandler.CoerceAfterWrite(writer, rawJson, member!, GetInternalSerializer(), _serializeStack);
                 }
                 finally
                 {
                     originalWriter = null;
-                    stringBuilder = null;
-                    stringWriter?.Dispose();
-                    stringWriter = null;
-                    (proxyWriter as IDisposable)?.Dispose();
-                    proxyWriter = null;
+                    (proxyJsonWriter as IDisposable)?.Dispose();
+                    proxyJsonWriter = null;
+                    proxyStringWriter?.Dispose();
+                    proxyStringWriter = null;
                 }
             }
             /*% coerce %*/

@@ -932,7 +932,7 @@ namespace Newtonsoft.Json.Serialization
                     PopulateMultidimensionalArray(list, reader, arrayContract, member, id);
                 }
                 /*% coerce %*/
-                _deserializeStack.Add(list);
+                _deserializeStack.Remove(list);
                 /*% coerce %*/
 
                 if (createdFromNonDefaultCreator)
@@ -973,7 +973,7 @@ namespace Newtonsoft.Json.Serialization
                 /*% coerce %*/
                 value = PopulateList((arrayContract.ShouldCreateWrapper || !(existingValue is IList list)) ? arrayContract.CreateWrapper(existingValue) : list, reader, arrayContract, member, id);
                 /*% coerce %*/
-                _deserializeStack.Add(existingValue);
+                _deserializeStack.Remove(existingValue);
                 /*% coerce %*/
             }
 
@@ -1091,12 +1091,12 @@ namespace Newtonsoft.Json.Serialization
 
             /*% coerce %*/
             JsonCoerceHandler? coerceHandler = property.CoerceHandler;
-            if (coerceHandler is not null)
+            if (coerceHandler is not null && coerceHandler.UseBeforeRead)
             {
                 reader = coerceHandler.CoerceBeforeRead(
                     reader,
-                    property.PropertyType!,
-                    property.PropertyContract,
+                    property,
+                    property,
                     propertyConverter != null,
                     GetInternalSerializer(),
                     _deserializeStack);
@@ -1176,7 +1176,10 @@ namespace Newtonsoft.Json.Serialization
                 property.ObjectCreationHandling.GetValueOrDefault(Serializer._objectCreationHandling);
 
             if ((objectCreationHandling != ObjectCreationHandling.Replace)
-                && (tokenType == JsonToken.StartArray || tokenType == JsonToken.StartObject || propertyConverter != null)
+                //&& (tokenType == JsonToken.StartArray || tokenType == JsonToken.StartObject || propertyConverter != null)
+                /*% coerce %*/
+                && (tokenType == JsonToken.StartArray || tokenType == JsonToken.StartObject || propertyConverter != null || property.CoerceHandler != null)
+                /*% coerce %*/
                 && property.Readable
                 && property.PropertyContract?.ContractType != JsonContractType.Linq)
             {
@@ -2031,7 +2034,13 @@ namespace Newtonsoft.Json.Serialization
                 TraceWriter.Trace(TraceLevel.Info, JsonPosition.FormatMessage(reader as IJsonLineInfo, reader.Path, "Deserializing {0} using creator with parameters: {1}.".FormatWith(CultureInfo.InvariantCulture, contract.UnderlyingType, parameters)), null);
             }
 
+            /*% coerce %*/
+            _deserializeStack.Add(contract.NonNullableUnderlyingType);
+            /*% coerce %*/
             List<CreatorPropertyContext> propertyContexts = ResolvePropertyAndCreatorValues(contract, containerProperty, reader, objectType);
+            /*% coerce %*/
+            _deserializeStack.Remove(contract.NonNullableUnderlyingType);
+            /*% coerce %*/
             if (trackPresence)
             {
                 foreach (JsonProperty property in contract.Properties)
@@ -2266,6 +2275,9 @@ namespace Newtonsoft.Json.Serialization
         private List<CreatorPropertyContext> ResolvePropertyAndCreatorValues(JsonObjectContract contract, JsonProperty? containerProperty, JsonReader reader, Type objectType)
         {
             List<CreatorPropertyContext> propertyValues = new List<CreatorPropertyContext>();
+            /*% coerce %*/
+            List<(string? PropertyName, object? Value)> deserializedProperties = new();
+            /*% coerce %*/
             bool exit = false;
             do
             {
@@ -2293,11 +2305,30 @@ namespace Newtonsoft.Json.Serialization
 
                                 JsonConverter? propertyConverter = GetConverter(property.PropertyContract, property.Converter, contract, containerProperty);
 
-                                if (!reader.ReadForType(property.PropertyContract, propertyConverter != null))
+                                //if (!reader.ReadForType(property.PropertyContract, propertyConverter != null))
+                                /*% coerce %*/
+                                var propertyCoerceHandler = creatorPropertyContext.ConstructorProperty?.CoerceHandler
+                                    ?? creatorPropertyContext.Property?.CoerceHandler;
+                                
+                                if (!reader.ReadForType(property.PropertyContract, propertyConverter != null
+                                    || (propertyCoerceHandler != null && propertyCoerceHandler.UseBeforeRead)))
+                                /*% coerce %*/
                                 {
                                     throw JsonSerializationException.Create(reader, "Unexpected end when setting {0}'s value.".FormatWith(CultureInfo.InvariantCulture, memberName));
                                 }
 
+                                /*% coerce %*/
+                                if (propertyCoerceHandler is not null && propertyCoerceHandler.UseBeforeRead)
+                                {
+                                    reader = propertyCoerceHandler.CoerceBeforeRead(
+                                        reader,
+                                        creatorPropertyContext.Property,
+                                        property,
+                                        propertyConverter != null,
+                                        GetInternalSerializer(),
+                                        _deserializeStack);
+                                }
+                                /*% coerce %*/
                                 if (propertyConverter != null && propertyConverter.CanRead)
                                 {
                                     creatorPropertyContext.Value = DeserializeConvertable(propertyConverter, reader, property.PropertyType!, null);
@@ -2306,6 +2337,14 @@ namespace Newtonsoft.Json.Serialization
                                 {
                                     creatorPropertyContext.Value = CreateValueInternal(reader, property.PropertyType, property.PropertyContract, property, contract, containerProperty, null);
                                 }
+                                /*% coerce %*/
+                                if (creatorPropertyContext.Value is not null)
+                                {
+                                    var deserializedProperty = (property.PropertyName ?? property.UnderlyingName, creatorPropertyContext.Value!);
+                                    deserializedProperties.Add(deserializedProperty);
+                                    _deserializeStack.Add(deserializedProperty);
+                                }
+                                /*% coerce %*/
                                 
                                 continue;
                             }
@@ -2358,6 +2397,12 @@ namespace Newtonsoft.Json.Serialization
             {
                 ThrowUnexpectedEndException(reader, contract, null, "Unexpected end when deserializing object.");
             }
+            /*% coerce %*/
+            foreach (var deserializedProperty in deserializedProperties)
+            {
+                _deserializeStack.Remove(deserializedProperty);
+            }
+            /*% coerce %*/
 
             return propertyValues;
         }
@@ -2483,7 +2528,8 @@ namespace Newtonsoft.Json.Serialization
 
                                 //if (!reader.ReadForType(property.PropertyContract, propertyConverter != null))
                                 /*% coerce %*/
-                                if (!reader.ReadForType(property.PropertyContract, propertyConverter != null || property.CoerceHandler != null))
+                                if (!reader.ReadForType(property.PropertyContract, propertyConverter != null
+                                        || (property.CoerceHandler != null && property.CoerceHandler.UseBeforeRead)))
                                 /*% coerce %*/
                                 {
                                     throw JsonSerializationException.Create(reader, "Unexpected end when setting {0}'s value.".FormatWith(CultureInfo.InvariantCulture, propertyName));

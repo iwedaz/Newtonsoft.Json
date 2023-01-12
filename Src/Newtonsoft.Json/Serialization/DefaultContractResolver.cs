@@ -785,6 +785,11 @@ namespace Newtonsoft.Json.Serialization
         }
 
         /*% coerce %*/
+        /// <summary>
+        /// Resolves the default <see cref="JsonCoerceHandler" /> for the contract.
+        /// </summary>
+        /// <param name="objectType">Type of the object.</param>
+        /// <returns>The contract's default <see cref="JsonCoerceHandler" />.</returns>
         protected virtual JsonCoerceHandler? ResolveJsonCoerceHandler(Type objectType) =>
             JsonTypeReflector.GetJsonCoerceHandler(objectType);
         /*% coerce %*/

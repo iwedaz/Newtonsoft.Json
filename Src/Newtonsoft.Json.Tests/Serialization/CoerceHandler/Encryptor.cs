@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 
 
-
 namespace Newtonsoft.Json.Tests.Serialization.CoerceHandler
 {
     internal class Encryptor : IDisposable
@@ -43,7 +42,6 @@ namespace Newtonsoft.Json.Tests.Serialization.CoerceHandler
 
             return cipherText;
         }
-
 
         public string Decrypt(string cipherText)
         {
