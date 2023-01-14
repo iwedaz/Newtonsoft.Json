@@ -94,30 +94,37 @@ namespace Newtonsoft.Json
 
             var contract = deserializedObjectProperty?.PropertyContract ?? deserializedObjectMemberProperty?.PropertyContract;
             var deserializedObjectType = deserializedObjectProperty?.PropertyType ?? deserializedObjectMemberProperty?.PropertyType;
-            if (contract?.ContractType is JsonContractType.String || deserializedObjectType == typeof(string))
-            {
-                validJsonString = ToValidJsonString(coercingResult.JsonString);
-            }
-            else if (
-                (contract is not null
-                    && contract.ContractType is JsonContractType.Primitive
+            
+            if (// convert to valid json string
+                // if string
+                (contract?.ContractType is JsonContractType.String || deserializedObjectType == typeof(string))
+                ||
+                // if primitive type that doesn't have json equivalent
+                ((contract?.ContractType is JsonContractType.Primitive
                     && contract.InternalReadType is (
                         ReadType.ReadAsBytes
                         or ReadType.ReadAsString
                         or ReadType.ReadAsDateTime
                         or ReadType.ReadAsDateTimeOffset)
+                    )
+                    || (deserializedObjectType == typeof(byte[])
+                        || deserializedObjectType == typeof(string)
+                        || deserializedObjectType == typeof(DateTime)
+                        || deserializedObjectType == typeof(DateTimeOffset)
+                        || deserializedObjectType == typeof(TimeSpan)
+                    )
                 )
-                || (deserializedObjectType == typeof(byte[])
-                    || deserializedObjectType == typeof(string)
-                    || deserializedObjectType == typeof(DateTime)
-                    || deserializedObjectType == typeof(DateTimeOffset)
-                    || deserializedObjectType == typeof(TimeSpan)
+                ||
+                // if deserializable type is System.Object
+                (!coercingResult.IsCoerced
+                    && (contract?.ContractType is JsonContractType.Object
+                        && deserializedObjectType == typeof(object))
                 )
             )
             {
                 validJsonString = ToValidJsonString(coercingResult.JsonString);
             }
-
+                
             var textReader = new StringReader(validJsonString);
             var jsonTextReader = new JsonTextReader(textReader);
             jsonTextReader.ReadForType(contract, hasConverter);

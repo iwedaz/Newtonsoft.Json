@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace Newtonsoft.Json
 {
+    [DebuggerDisplay("{_currentReader}")]
     internal sealed class JsonReaderChainer : JsonReader
     {
         //  bool -- marks that reader has been exhausted

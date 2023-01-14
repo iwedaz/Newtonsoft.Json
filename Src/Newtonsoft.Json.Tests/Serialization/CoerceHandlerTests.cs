@@ -33,13 +33,16 @@ namespace Newtonsoft.Json.Tests.Serialization
         public void Serialization_EncryptCoerceHandler1_Success()
         {
             var models = new [] {
-                //new TopLevelModel() { IsEncrypted = true, StrProp = "elem_1" },
-                new TopLevelModel(15, new byte[]{111, 114, 108, 100, 33 }) { IsEncrypted = false, StrProp = "elem_2" },
-                new TopLevelModel(15, new byte[]{111, 114, 108, 100, 33 }) { IsEncrypted = true, StrProp = "elem_3" },
-                new TopLevelModel(15, new byte[]{111, 114, 108, 100, 33 }) { IsEncrypted = false, StrProp = "elem_4" },
+                new TopLevelModel(15, new byte[] { 111, 114, 108, 100, 33 }) { IsEncrypted = false, StrProp = "elem_2" },
+                new TopLevelModel(15, new byte[] { 111, 114, 108, 100, 33 }) { IsEncrypted = true, StrProp = "elem_2" },
             };
-            string json = JsonConvert.SerializeObject(models, Formatting.Indented);
-            var restoredModel = JsonConvert.DeserializeObject<System.Collections.Generic.List<TopLevelModel>>(json);
+            
+            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+            
+            var json = JsonConvert.SerializeObject(models, Formatting.Indented, settings);
+            var restoredModel = JsonConvert.DeserializeObject<System.Collections.Generic.List<TopLevelModel>>(json, settings);
+            
+            Assert.Equal(restoredModel[0], restoredModel[1] with { IsEncrypted = false });
             Assert.Equal(models[0].StrProp, restoredModel[0].StrProp);
             Assert.Equal(models[0].CoerceTestEnum, restoredModel[0].CoerceTestEnum);
             Assert.Equal(models[0].ArrayBytes, restoredModel[0].ArrayBytes);
@@ -54,6 +57,20 @@ namespace Newtonsoft.Json.Tests.Serialization
             Assert.Equal(models[0].MidLevelModel, restoredModel[0].MidLevelModel);
             Assert.Equal(models[0].Secret, restoredModel[0].Secret);
             Assert.Equal(models[0].DateWithConverter, restoredModel[0].DateWithConverter);
+            Assert.Equal(models[1].StrProp, restoredModel[1].StrProp);
+            Assert.Equal(models[1].CoerceTestEnum, restoredModel[1].CoerceTestEnum);
+            Assert.Equal(models[1].ArrayBytes, restoredModel[1].ArrayBytes);
+            Assert.Equal(models[1].ArrayDates, restoredModel[1].ArrayDates);
+            Assert.Equal(models[1].ArrayMessages, restoredModel[1].ArrayMessages);
+            Assert.Equal(models[1].CollectionOfArrBytes, restoredModel[1].CollectionOfArrBytes);
+            Assert.Equal(models[1].CreateDate, restoredModel[1].CreateDate);
+            Assert.Equal(models[1].HistoryDate, restoredModel[1].HistoryDate);
+            Assert.Equal(models[1].IntProp, restoredModel[1].IntProp);
+            Assert.Equal(models[1].LastModified, restoredModel[1].LastModified);
+            Assert.Equal(models[1].Messages, restoredModel[1].Messages);
+            Assert.Equal(models[1].MidLevelModel, restoredModel[1].MidLevelModel);
+            Assert.Equal(models[1].Secret, restoredModel[1].Secret);
+            Assert.Equal(models[1].DateWithConverter, restoredModel[1].DateWithConverter);
         }
 
         [Fact]
