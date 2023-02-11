@@ -7,7 +7,7 @@ using Newtonsoft.Json.Tests.Converters;
 
 namespace Newtonsoft.Json.Tests.Serialization.CoerceHandler
 {
-    internal sealed record TopLevelModel
+    public sealed record TopLevelModel
     {
         public bool IsEncrypted = false;
 
@@ -64,7 +64,7 @@ namespace Newtonsoft.Json.Tests.Serialization.CoerceHandler
     }
 
     [JsonConverter(typeof(MetadataValueJsonConverter))]
-    internal sealed record MidLevelModel
+    public sealed record MidLevelModel
     {
         public object IntProp { get; set; } = 11;
         public object StrProp0 { get; set; } = "mid_str_0";
@@ -79,7 +79,7 @@ namespace Newtonsoft.Json.Tests.Serialization.CoerceHandler
         public object StrProp2 { get; set; } = "mid_str_2";
     }
 
-    internal sealed record LowLevelModel
+    public sealed record LowLevelModel
     {
         public LowLevelModel(int i, string g)
         {
@@ -97,13 +97,13 @@ namespace Newtonsoft.Json.Tests.Serialization.CoerceHandler
     }
 
 
-    internal sealed record ThinModelStr
+    public sealed record ThinModelStr
     {
         [JsonCoerce(typeof(EncryptCoercer))]
         public string Secret { get; set; } = "thin_secret_user_text";
     }
 
-    internal sealed record ThinModelInt
+    public sealed record ThinModelInt
     {
         [JsonCoerce(typeof(EncryptCoercer))]
         public int Secret { get; set; } = 15;
